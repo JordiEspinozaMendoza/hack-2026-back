@@ -89,9 +89,18 @@
       <button onclick="enhanceLesson()">Enhance Lesson</button>
       <div id="enhancedLog"
         style="margin-top: 15px; background: #111; color: #0f0; padding: 15px; height: 200px; overflow-y: auto;"></div>
+      <div id="finalMarkdown"
+        style="margin-top: 15px; background: #eee; color: #000; padding: 15px; height: auto; overflow-y: auto;"></div>
     </div>
 
-
+    <!-- CREATE QUIZ SECTION -->
+    <div class="section">
+      <h3>📝 Create Quiz</h3>
+      <textarea id="quizContent" placeholder="Lesson Content for Quiz" style="height: 80px; width: 100%;"></textarea>
+      <button onclick="generateQuiz()">Generate Quiz</button>
+      <div id="quizResult"
+        style="margin-top: 15px; background: #eee; color: #000; padding: 15px; height: auto; overflow-y: auto;"></div>
+    </div>
   </div>
 
   <script>
@@ -154,8 +163,34 @@
         // auto-scroll
         enhancedLog.scrollTop = enhancedLog.scrollHeight;
       }
+
+      // After streaming is done, display the final enhanced lesson in the "finalMarkdown" div
+      const finalMarkdown = document.getElementById("finalMarkdown");
+      finalMarkdown.innerHTML = marked.parse(fullText);
+    }
+
+    async function generateQuiz() {
+      const quizContent = document.getElementById("quizContent").value;
+      const quizResult = document.getElementById("quizResult");
+
+      quizResult.textContent = "";
+
+      const response = await fetch(
+        `http://localhost:8000/generate-quiz`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ lesson_content: quizContent })
+        }
+      );
+
+      const quiz = await response.json();
+      quizResult.innerHTML = JSON.stringify(quiz, null, 2);
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 </body>
 

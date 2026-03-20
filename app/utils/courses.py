@@ -1,12 +1,12 @@
-from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Generator
 import ollama
 import json
 import time
 import os
+import redis
 
-router = APIRouter()
+redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 MODEL = "phi3"
 MAX_RETRIES = 3
@@ -78,7 +78,9 @@ def stream_generate_lectures(summaries) -> Generator[str, None, list]:
     return lectures
 
 
-def stream_generate_course(transcript_name: str):
+def stream_generate_course(
+    course_id: str, transcript_name: str, title: str, description: str
+) -> Generator[str, None, dict]:
     try:
         path = f"transcriptions/{transcript_name}"
         print(f"Opening transcript: {path}...")
@@ -88,14 +90,22 @@ def stream_generate_course(transcript_name: str):
             transcript = f.read()
 
         yield "Chunking transcript...\n"
-        print("Chunking transcript...")
         chunks = chunk_text(transcript)
 
         summaries = []
 
+        # Check if redis client is available and try to get enhanced lesson from cache
+        if redis_client:
+            print(
+                f"Checking Redis cache for enhanced course with ID: {transcript_name}..."
+            )
+            cached = redis_client.get(f"enhanced_course:{transcript_name}")
+            if cached:
+                yield "Found enhanced course in cache! Loading...\n"
+                return json.loads(cached)
+
         # 🔹 Summaries
         for i, chunk in enumerate(chunks):
-            print(f"Summarizing chunk {i+1}/{len(chunks)}...")
             yield f"🧠 Summarizing chunk {i+1}/{len(chunks)}...\n"
 
             prompt = f"""
@@ -115,7 +125,6 @@ def stream_generate_course(transcript_name: str):
             data = retry_json(prompt)
             summaries.extend(data["summary"])
 
-            print(f"Chunk {i+1} summary: {data['summary']}")
             yield f"Chunk {i+1} summary: {data['summary']}\n"
 
         os.makedirs("courses", exist_ok=True)
@@ -125,6 +134,18 @@ def stream_generate_course(transcript_name: str):
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump({"lectures": lectures_generated}, f, indent=2)
 
+        if redis_client:
+            redis_client.set(
+                f"course:{course_id}",
+                json.dumps(
+                    {
+                        "title": title,
+                        "description": description,
+                        "lectures": lectures_generated,
+                    }
+                ),
+            )
+            redis_client.close()
         yield f"\nSaved course to {output_path}\n"
 
     except Exception as e:

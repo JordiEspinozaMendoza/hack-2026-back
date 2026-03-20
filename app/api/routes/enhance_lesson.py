@@ -1,12 +1,22 @@
 from fastapi import APIRouter
+from pydantic import BaseModel
 from app.utils.lesson import stream_enhance_lesson
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
 
-@router.get("/enhance-lesson-stream")
-def enhance_lesson_stream(transcript_name: str, lesson_name: str):
+class EnhanceLessonRequest(BaseModel):
+    lesson_id: str
+    lesson_name: str
+    lesson_content: str
+
+
+@router.post("/enhance-lesson-stream")
+def enhance_lesson_stream(request: EnhanceLessonRequest):
     return StreamingResponse(
-        stream_enhance_lesson(transcript_name, lesson_name), media_type="text/plain"
+        stream_enhance_lesson(
+            request.lesson_id, request.lesson_name, request.lesson_content
+        ),
+        media_type="text/plain",
     )
