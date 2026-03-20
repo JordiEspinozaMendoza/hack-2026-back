@@ -53,6 +53,11 @@ def create_quiz_from_lesson(course_id: str, lesson_content: str) -> dict:
                 # Add the quiz inside of quizes field of the course cache
                 course_data["quizes"] = course_data.get("quizes", {})
                 quiz_id = str(uuid.uuid4())
+                # If theres is no quizes field, create it as a list
+                if "quizes" not in course_data or not isinstance(
+                    course_data["quizes"], list
+                ):
+                    course_data["quizes"] = []
 
                 course_data["quizes"].append(
                     {
