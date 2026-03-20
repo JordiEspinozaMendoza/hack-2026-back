@@ -7,6 +7,7 @@ router = APIRouter()
 
 
 class EnhanceLessonRequest(BaseModel):
+    course_id: str
     lesson_id: str
     lesson_name: str
     lesson_content: str
@@ -16,7 +17,10 @@ class EnhanceLessonRequest(BaseModel):
 def enhance_lesson_stream(request: EnhanceLessonRequest):
     return StreamingResponse(
         stream_enhance_lesson(
-            request.lesson_id, request.lesson_name, request.lesson_content
+            request.course_id,
+            request.lesson_id,
+            request.lesson_name,
+            request.lesson_content,
         ),
         media_type="text/plain",
     )

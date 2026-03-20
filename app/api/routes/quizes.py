@@ -7,15 +7,15 @@ router = APIRouter()
 
 
 class QuizRequest(BaseModel):
+    course_id: str
     lesson_content: str
-    lesson_id: str
 
 
 @router.post("/generate-quiz")
 def generate_quiz(quiz_request: QuizRequest):
     try:
         quiz = create_quiz_from_lesson(
-            quiz_request.lesson_id, quiz_request.lesson_content
+            quiz_request.course_id, quiz_request.lesson_content
         )
         return JSONResponse(content=quiz)
     except Exception as e:

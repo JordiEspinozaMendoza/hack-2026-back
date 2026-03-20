@@ -1,4 +1,3 @@
-from pydantic import BaseModel
 from typing import Generator
 import ollama
 import json
@@ -55,11 +54,14 @@ def stream_generate_lectures(summaries) -> Generator[str, None, list]:
 
         prompt = f"""
         You are a lecture generator assistant.
-        Based on the following summarized points, generate a lecture with a title and description.
+        Based on the following summarized points, generate a lecture with a title and description. Take in consideration the overall flow and coherence of the lecture. The title should be concise and capture the main topic of the lecture, while the description should provide a clear and engaging overview of the lecture content.
+        For the tags, identify the key concepts and themes covered in the lecture. Choose tags from the following list: {', '.join(["Frontend","Backend","Full Stack","DevOps","DevSecOps","Data Analyst","AI Engineer","AI and Data Scientist","Data Engineer","Android","Machine Learning","PostgreSQL","iOS","Blockchain","QA","Software Architect","Cyber Security","UX Design","Technical Writer","Game Developer","Server Side Game Developer","MLOps","Product Manager","Engineering Manager","Developer Relations","BI Analyst",
+"SQL","Computer Science","React","Vue","Angular","JavaScript","TypeScript","Node.js","Python", "System Design","Java","ASP.NET Core","API Design","Spring Boot","Flutter","C++","Rust","Go Roadmap","Design and Architecture","GraphQL","React Native","Design System","Prompt Engineering","MongoDB","Linux","Kubernetes","Docker","AWS","Terraform","Data Structures & Algorithms","Redis","Git and GitHub","AI Agents","Next.js","Code Review","Kotlin","HTML","CSS","Swift & Swift UI","Shell / Bash","Django", "Ruby","Ruby on Rails","Agile"])}.
         
         Return JSON: {{
             "title": "string",
-            "description": "string"
+            "description": "string",
+            "tags": ["tag1", "tag2"]
         }}
 
         Content:
@@ -68,10 +70,21 @@ def stream_generate_lectures(summaries) -> Generator[str, None, list]:
 
         data = retry_json(prompt)
 
-        lectures.append({"title": data["title"], "description": data["description"]})
+        lectures.append(
+            {
+                "title": data["title"],
+                "description": data["description"],
+                "tags": data["tags"],
+            }
+        )
         yield "\n===LECTURE===\n"
         yield json.dumps(
-            {"title": data["title"], "description": data["description"]}, indent=2
+            {
+                "title": data["title"],
+                "description": data["description"],
+                "tags": data["tags"],
+            },
+            indent=2,
         )
 
         yield f"\n✔ Lecture {i+1} done\n"
@@ -79,8 +92,25 @@ def stream_generate_lectures(summaries) -> Generator[str, None, list]:
 
 
 def stream_generate_course(
-    course_id: str, transcript_name: str, title: str, description: str
-) -> Generator[str, None, dict]:
+    transcript_name: str, course_id: str, title: str, description: str
+) -> Generator[str, None, str]:
+    # if transcript_name.endswith(".txt"):
+    #     transcript_name = transcript_name[:-4]
+    # if transcript_name in workers:
+    #     yield f"Course generation for '{transcript_name}' is already in progress. Please wait...\n"
+    #     return
+    # workers.add(transcript_name)
+
+    # if os.path.exists(f"courses/{transcript_name}_course.json"):
+    #     yield f"Course already generated. Loading from courses/{transcript_name}_course.json...\n"
+    #     with open(f"courses/{transcript_name}_course.json", "r", encoding="utf-8") as f:
+    #         data = json.load(f)
+    #         for lecture in data.get("lectures", []):
+    #             yield "\n===LECTURE===\n"
+    #             yield json.dumps(lecture, indent=2)
+    #     workers.remove(transcript_name)
+    #     return
+
     try:
         path = f"transcriptions/{transcript_name}"
         print(f"Opening transcript: {path}...")
@@ -96,16 +126,18 @@ def stream_generate_course(
 
         # Check if redis client is available and try to get enhanced lesson from cache
         if redis_client:
-            print(
-                f"Checking Redis cache for enhanced course with ID: {transcript_name}..."
-            )
-            cached = redis_client.get(f"enhanced_course:{transcript_name}")
+            print(f"Checking Redis cache for enhanced course with ID: {course_id}...")
+            cached = redis_client.get(f"course:{course_id}")
             if cached:
                 yield "Found enhanced course in cache! Loading...\n"
                 return json.loads(cached)
+            else:
+                yield "No cache found for course. Generating from transcript...\n"
+                print("No cache found for course. Generating from transcript...")
 
         # 🔹 Summaries
         for i, chunk in enumerate(chunks):
+            print(f"Summarizing chunk {i+1}/{len(chunks)}...")
             yield f"🧠 Summarizing chunk {i+1}/{len(chunks)}...\n"
 
             prompt = f"""
@@ -147,7 +179,7 @@ def stream_generate_course(
             )
             redis_client.close()
         yield f"\nSaved course to {output_path}\n"
-
+        # workers.remove(transcript_name)
     except Exception as e:
         print("Error in course generation:", e)
         # Print the line where the error occurred
@@ -155,3 +187,17 @@ def stream_generate_course(
 
         traceback.print_exc()
         yield f"\nERROR: {str(e)}\n"
+        # workers.remove(transcript_name)
+
+
+def get_course(course_id: str):
+    try:
+        if redis_client:
+            cached = redis_client.get(f"course:{course_id}")
+            if cached:
+                print(f"Course {course_id} found in cache.")
+                return json.loads(cached)
+            redis_client.close()
+
+    except Exception as e:
+        return {"error": str(e)}

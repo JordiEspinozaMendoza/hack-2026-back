@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, json
 
-from app.api.deps import get_db
 import redis
 
 router = APIRouter()
@@ -20,6 +19,7 @@ class CourseResponse(BaseModel):
     title: str
     description: str
     lessons: list[dict] = []
+    quizes: list[dict] = []
 
 
 @router.post("/", response_model=CourseCreate)
@@ -62,4 +62,5 @@ def read(course_id: str):
         title=course_data[b"title"].decode(),
         description=course_data[b"description"].decode(),
         lessons=json.loads(course_data.get(b"lessons", b"[]").decode()),
+        quizes=json.loads(course_data.get(b"quizes", b"[]").decode()),
     )

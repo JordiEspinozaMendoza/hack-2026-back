@@ -11,7 +11,7 @@ redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 
 def stream_enhance_lesson(
-    lesson_id: str, lesson_name: str, lesson_content: str
+    course_id: str, lesson_id: str, lesson_name: str, lesson_content: str
 ) -> Generator[str, None, str]:
     try:
         # path = f"courses/{transcript_name}_course.json"
@@ -101,7 +101,25 @@ def stream_enhance_lesson(
 
         enhanced_lesson = "".join(enhanced_parts)
         if redis_client:
-            redis_client.set(f"enhanced_lesson:{lesson_id}", enhanced_lesson)
+            redis_client.set(
+                f"lessons:{lesson_id}",
+                json.dumps(
+                    {
+                        "content": enhanced_lesson,
+                        "lesson_name": lesson_name,
+                    }
+                ),
+            )
+            # Update course cache if exists
+            cached_course = redis_client.get(f"course:{course_id}")
+            if cached_course:
+                course_data = json.loads(cached_course)
+                for lecture in course_data.get("lectures", []):
+                    if lecture["title"] == lesson_name:
+                        lecture["description"] = enhanced_lesson
+                        break
+                redis_client.set(f"course:{course_id}", json.dumps(course_data))
+
             redis_client.close()
 
         return enhanced_lesson
