@@ -10,8 +10,9 @@ router = APIRouter()
 
 class VideoRequest(BaseModel):
     url: str
+    lecture_id: str
 
 
 @router.get("/transcribe")
-def transcribe_stream(url: str):
-    return StreamingResponse(stream_transcription(url), media_type="text/plain")
+def transcribe_stream(url: str, lecture_id: str):
+    return StreamingResponse(stream_transcription(url, lecture_id), media_type="text/plain")

@@ -35,10 +35,13 @@ def create_transcription_file():
     return file_path
 
 
-def stream_transcription(url: str):
+def stream_transcription(url: str, lecture_id: str):
     print(f"Transcribing video: {url}...")
     video_path = download_video(url)
-    file_path = create_transcription_file()
+    if lecture_id:
+        file_path = f"transcriptions/{lecture_id}.txt"
+    else:
+        file_path = create_transcription_file()
 
     try:
         with open(file_path, "w", encoding="utf-8") as f:

@@ -1,122 +1,130 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Transcription Stream Test</title>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Transcription Stream Test</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    .container {
-      width: 600px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: none;
-      margin-bottom: 10px;
-    }
-
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #3b82f6;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #2563eb;
-    }
-
-    #output {
-      margin-top: 20px;
-      background: #020617;
-      padding: 15px;
-      border-radius: 10px;
-      height: 250px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      line-height: 1.5;
-    }
-
-    .cursor {
-      display: inline-block;
-      width: 8px;
-      background: white;
-      animation: blink 1s infinite;
-      margin-left: 2px;
-    }
-
-    @keyframes blink {
-      0%, 50%, 100% { opacity: 1; }
-      25%, 75% { opacity: 0; }
-    }
-  </style>
-</head>
-<body>
-
-  <div class="container">
-    <h2>🎧 Transcription Stream</h2>
-
-    <input id="urlInput" placeholder="Paste video URL here..." />
-    <button onclick="startStreaming()">Start</button>
-
-    <div id="output"></div>
-  </div>
-
-  <script>
-    async function startStreaming() {
-      const url = document.getElementById("urlInput").value;
-      const output = document.getElementById("output");
-
-      output.textContent = "";
-      
-      const cursor = document.createElement("span");
-      cursor.className = "cursor";
-      output.appendChild(cursor);
-
-      try {
-        const response = await fetch(`http://localhost:8000/transcribe?url=${encodeURIComponent(url)}`);
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-
-        let done = false;
-        let fullText = "";
-
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          done = doneReading;
-
-          const chunk = decoder.decode(value || new Uint8Array());
-          fullText += chunk;
-
-          output.textContent = fullText;
-          output.appendChild(cursor);
-
-          // auto-scroll
-          output.scrollTop = output.scrollHeight;
-        }
-
-        cursor.remove();
-
-      } catch (err) {
-        output.textContent = "❌ Error: " + err.message;
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
       }
-    }
-  </script>
 
-</body>
+      .container {
+        width: 600px;
+      }
+
+      input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        margin-bottom: 10px;
+      }
+
+      button {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        background: #3b82f6;
+        color: white;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #2563eb;
+      }
+
+      #output {
+        margin-top: 20px;
+        background: #020617;
+        padding: 15px;
+        border-radius: 10px;
+        height: 250px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        line-height: 1.5;
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 8px;
+        background: white;
+        animation: blink 1s infinite;
+        margin-left: 2px;
+      }
+
+      @keyframes blink {
+        0%,
+        50%,
+        100% {
+          opacity: 1;
+        }
+        25%,
+        75% {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>🎧 Transcription Stream</h2>
+
+      <input id="urlInput" placeholder="Paste video URL here..." />
+      <input id="lectureIdInput" placeholder="Enter lecture ID..." />
+      <button onclick="startStreaming()">Start</button>
+
+      <div id="output"></div>
+    </div>
+
+    <script>
+      async function startStreaming() {
+        const url = document.getElementById("urlInput").value;
+        const lectureId = document.getElementById("lectureIdInput").value;
+        const output = document.getElementById("output");
+
+        output.textContent = "";
+
+        const cursor = document.createElement("span");
+        cursor.className = "cursor";
+        output.appendChild(cursor);
+
+        try {
+          const response = await fetch(
+            `http://localhost:8000/transcribe?url=${encodeURIComponent(url)}&lecture_id=${encodeURIComponent(lectureId)}`,
+          );
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+
+          let done = false;
+          let fullText = "";
+
+          while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            done = doneReading;
+
+            const chunk = decoder.decode(value || new Uint8Array());
+            fullText += chunk;
+
+            output.textContent = fullText;
+            output.appendChild(cursor);
+
+            // auto-scroll
+            output.scrollTop = output.scrollHeight;
+          }
+
+          cursor.remove();
+        } catch (err) {
+          output.textContent = "❌ Error: " + err.message;
+        }
+      }
+    </script>
+  </body>
 </html>
