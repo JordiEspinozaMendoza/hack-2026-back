@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, json
+from pydantic import BaseModel
+import json
 
 import redis
 
@@ -22,7 +23,7 @@ class CourseResponse(BaseModel):
     quizes: list[dict] = []
 
 
-@router.post("/", response_model=CourseCreate)
+@router.post("/courses", response_model=CourseCreate)
 def create(data: CourseCreate):
     if redis_client.exists(f"course:{data.course_id}"):
         raise Exception("Course with this ID already exists")
@@ -35,23 +36,27 @@ def create(data: CourseCreate):
     return redis_client.hgetall(f"course:{data.course_id}")
 
 
-@router.get("/", response_model=list[CourseResponse])
+@router.get("/courses", response_model=list[CourseResponse])
 def list_courses():
+    print("Listing courses from Redis...")
     course_keys = redis_client.keys("course:*")
+    print(f"Found course keys in Redis: {course_keys}")
     courses = []
     for key in course_keys:
-        course_data = redis_client.hgetall(key)
+        course_data = redis_client.get(key)
+        course_json = json.loads(course_data)
+        print(f"Loaded course from Redis: {course_json}")
         courses.append(
             CourseResponse(
                 course_id=key.decode().split(":")[1],
-                title=course_data[b"title"].decode(),
-                description=course_data[b"description"].decode(),
+                title=course_json["title"],
+                description=course_json["description"],
             )
         )
     return courses
 
 
-@router.get("/{course_id}", response_model=CourseResponse)
+@router.get("/courses/{course_id}", response_model=CourseResponse)
 def read(course_id: str):
     if not redis_client.exists(f"course:{course_id}"):
         raise Exception("Course not found")
