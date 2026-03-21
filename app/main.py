@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.routes import transcribe, generate_course, enhance_lesson, quizes, career_advice
+from app.api.routes import transcribe, generate_course, enhance_lesson, quizes, career_advice, course
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -20,6 +20,7 @@ app.include_router(generate_course.router, prefix="", tags=["Generate Course"])
 app.include_router(enhance_lesson.router, prefix="", tags=["Enhance Lesson"])
 app.include_router(quizes.router, prefix="", tags=["Quizes"])
 app.include_router(career_advice.router, prefix="", tags=["Career Advice"])
+app.include_router(course.router, prefix="", tags=["Courses"])
 
 
 @app.get("/")
