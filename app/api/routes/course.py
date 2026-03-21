@@ -16,7 +16,7 @@ class CourseCreate(BaseModel):
 
 
 class CourseResponse(BaseModel):
-    course_id: str
+    id: str
     title: str
     description: str
     lessons: list[dict] = []
@@ -48,7 +48,7 @@ def list_courses():
         print(f"Loaded course from Redis: {course_json}")
         courses.append(
             CourseResponse(
-                course_id=key.decode().split(":")[1],
+                id=key.decode().split(":")[1],
                 title=course_json["title"],
                 description=course_json["description"],
             )
